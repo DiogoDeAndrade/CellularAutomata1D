@@ -12,6 +12,8 @@ In the image below we can see the default parameters: 2 states, 31 cells, initia
 
 ![Image](https://github.com/DiogoDeAndrade/CellularAutomata1D/raw/master/Screenshots/screen01.png)
 
+There's a second version, vectorized using numpy, which is much more efficient, although that efficiency only shows for large numbers of cells.
+
 ## Credits
 
 * Code by [Diogo Andrade]

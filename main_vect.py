@@ -1,6 +1,7 @@
 import pygame
 import random
 import time
+import numpy as np
 
 def ConvertDecimalToBase(base10_number, n_base, trailing_zeros):
     n = base10_number
@@ -48,25 +49,34 @@ def BuildRuleset(rule_number, n_states, n_neighbours):
 
     return ret
 
-def GetNextState(current_state, rules, n_states, n_neighbours):
-    ret = current_state[:]
+# def GetNextState(current_state, rules, n_states, n_neighbours):
+#     ret = current_state[:]
 
-    n = len(current_state)
+#     n = len(current_state)
 
-    for i in range(n):
-        neighbourhood = []
-        for dx in range(-n_neighbours, n_neighbours + 1):
-            t = i + dx
-            if (t < 0):
-                neighbourhood.append(current_state[t])
-            else:
-                neighbourhood.append(current_state[t % n])
+#     for i in range(n):
+#         neighbourhood = []
+#         for dx in range(-n_neighbours, n_neighbours + 1):
+#             t = i + dx
+#             if (t < 0):
+#                 neighbourhood.append(current_state[t])
+#             else:
+#                 neighbourhood.append(current_state[t % n])
 
-        v = ConvertBaseToDecimal(neighbourhood, n_states)
+#         v = ConvertBaseToDecimal(neighbourhood, n_states)
 
-        ret[i] = rules[v]
+#         ret[i] = rules[v]
 
-    return ret
+#     return ret
+
+def GetNextState(current_state, rules_b, n_states, n_neighbours):
+    global binary_to_decimal
+    
+    y = np.vstack((np.roll(current_state, 1), current_state, np.roll(current_state, -1))).astype(np.int8)
+
+    z = np.sum(y * binary_to_decimal, axis = 0).astype(np.int8)
+
+    return rules_b[z].transpose()
 
 def CreateRandomState(n_states, n_cells):
     ret = []
@@ -80,15 +90,25 @@ n_states = 2
 n_cells = 31
 n_neighbours = 1
 n_iter = 15
+bit_count = n_neighbours * 2 + 1
+
+binary_to_decimal = np.zeros((bit_count, 1), dtype = np.int8)
+for i in range(bit_count):
+    binary_to_decimal[i, 0] = n_states ** (bit_count - i - 1)
 
 max_rules = n_states ** (n_states ** (n_neighbours * 2 + 1))
 rule = 30
 #rule = random.randrange(0, max_rules)
 
 ruleset = BuildRuleset(rule, n_states, n_neighbours)
+rules_b = np.zeros((len(ruleset), 1), dtype = np.int8)
+for i, v in ruleset.items():
+    rules_b[i, 0] = v
 
 initial_state = 1 << (n_cells // 2)
-current_state = ConvertDecimalToBase(initial_state, n_states, n_cells)
+current_state = np.zeros((1, n_cells), dtype = np.int8)
+current_state[0,:] = ConvertDecimalToBase(initial_state, n_states, n_cells)
+
 #current_state = CreateRandomState(n_states, n_cells)
 
 allStates = [ current_state ]
@@ -96,7 +116,7 @@ allStates = [ current_state ]
 startTime = time.time()
 
 for i in range(n_iter + 1):
-    current_state = GetNextState(current_state, ruleset, n_states, n_neighbours)
+    current_state = GetNextState(current_state, rules_b, n_states, n_neighbours)
     allStates.append(current_state)
 
 endTime = time.time()
@@ -146,8 +166,10 @@ else:
         (255, 255, 255)
     ]
 
-for i, state in enumerate(allStates):
+for i, np_state in enumerate(allStates):
     #print(current_state)
+
+    state = np_state.tolist()[0]
 
     # Create cells
     for j, v in enumerate(state):
