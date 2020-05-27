@@ -49,34 +49,25 @@ def BuildRuleset(rule_number, n_states, n_neighbours):
 
     return ret
 
-# def GetNextState(current_state, rules, n_states, n_neighbours):
-#     ret = current_state[:]
-
-#     n = len(current_state)
-
-#     for i in range(n):
-#         neighbourhood = []
-#         for dx in range(-n_neighbours, n_neighbours + 1):
-#             t = i + dx
-#             if (t < 0):
-#                 neighbourhood.append(current_state[t])
-#             else:
-#                 neighbourhood.append(current_state[t % n])
-
-#         v = ConvertBaseToDecimal(neighbourhood, n_states)
-
-#         ret[i] = rules[v]
-
-#     return ret
-
 def GetNextState(current_state, rules_b, n_states, n_neighbours):
     global binary_to_decimal
+    global y
     
-    y = np.vstack((np.roll(current_state, 1), current_state, np.roll(current_state, -1))).astype(np.int8)
+    #print("Current=\n" + str(current_state))
+    for idx, dx in enumerate(range(-n_neighbours, n_neighbours + 1)):
+        y[idx,:] = np.roll(current_state[0], dx)
 
-    z = np.sum(y * binary_to_decimal, axis = 0).astype(np.int8)
+    #print("y=\n" + str(y))
 
-    return rules_b[z].transpose()
+    z = (y * binary_to_decimal).astype(np.int8)
+
+    #print("z=\n" + str(z))
+
+    w = np.sum(z, axis = 0).astype(np.int8)
+
+    #print("w=\n" + str(w))
+
+    return rules_b[w].transpose()
 
 def CreateRandomState(n_states, n_cells):
     ret = []
@@ -94,7 +85,9 @@ bit_count = n_neighbours * 2 + 1
 
 binary_to_decimal = np.zeros((bit_count, 1), dtype = np.int8)
 for i in range(bit_count):
-    binary_to_decimal[i, 0] = n_states ** (bit_count - i - 1)
+    binary_to_decimal[i, 0] = n_states ** (i)
+
+y = np.zeros((n_neighbours * 2 + 1, n_cells), dtype = np.int8)
 
 max_rules = n_states ** (n_states ** (n_neighbours * 2 + 1))
 rule = 30
@@ -105,7 +98,7 @@ rules_b = np.zeros((len(ruleset), 1), dtype = np.int8)
 for i, v in ruleset.items():
     rules_b[i, 0] = v
 
-initial_state = 1 << (n_cells // 2)
+initial_state = (1 << (n_cells // 2))
 current_state = np.zeros((1, n_cells), dtype = np.int8)
 current_state[0,:] = ConvertDecimalToBase(initial_state, n_states, n_cells)
 
@@ -115,7 +108,7 @@ allStates = [ current_state ]
 
 startTime = time.time()
 
-for i in range(n_iter + 1):
+for i in range(n_iter):
     current_state = GetNextState(current_state, rules_b, n_states, n_neighbours)
     allStates.append(current_state)
 
